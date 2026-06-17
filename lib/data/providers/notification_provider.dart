@@ -4,22 +4,32 @@ import '../services/notification_service.dart';
 class NotificationProvider extends ChangeNotifier {
   final NotificationService _service = NotificationService();
 
-  List<dynamic> _notifications = [];
+  List<Map<String, dynamic>> _notifications = [];
   int  _nonLues   = 0;
   bool _isLoading = false;
 
-  List<dynamic> get notifications => _notifications;
+  List<Map<String, dynamic>> get notifications => _notifications;
   int  get nonLues   => _nonLues;
   bool get isLoading => _isLoading;
+
+  // ✅ Convertit n'importe quel Map en Map<String, dynamic>
+  Map<String, dynamic> _toMap(dynamic item) {
+    if (item is Map<String, dynamic>) return item;
+    return Map<String, dynamic>.from(item as Map);
+  }
 
   Future<void> charger() async {
     _isLoading = true;
     notifyListeners();
     try {
-      _notifications = await _service.getNotifications();
+      final raw = await _service.getNotifications();
+      // ✅ Convertit chaque élément en Map<String, dynamic>
+      _notifications = raw.map((n) => _toMap(n)).toList();
       _nonLues = _notifications
           .where((n) => n['lue'] == false).length;
-    } catch (_) {}
+    } catch (e) {
+      print('Erreur chargement notifications: $e');
+    }
     _isLoading = false;
     notifyListeners();
   }
@@ -35,22 +45,30 @@ class NotificationProvider extends ChangeNotifier {
     try {
       await _service.marquerLue(id);
       _notifications = _notifications.map((n) {
-        if (n['id'] == id) return {...n, 'lue': true};
+        if (n['id'] == id) {
+          return Map<String, dynamic>.from({...n, 'lue': true});
+        }
         return n;
       }).toList();
       _nonLues = _notifications
           .where((n) => n['lue'] == false).length;
       notifyListeners();
-    } catch (_) {}
+    } catch (e) {
+      print('Erreur marquerLue: $e');
+    }
   }
 
   Future<void> marquerToutesLues() async {
     try {
       await _service.marquerToutesLues();
+      // ✅ Convertit chaque notif en Map<String, dynamic> propre
       _notifications = _notifications.map((n) =>
-      {...n, 'lue': true}).toList();
+      Map<String, dynamic>.from({...n, 'lue': true})
+      ).toList();
       _nonLues = 0;
       notifyListeners();
-    } catch (_) {}
+    } catch (e) {
+      print('Erreur marquerToutesLues: $e');
+    }
   }
 }
