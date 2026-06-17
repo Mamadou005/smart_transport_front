@@ -6,7 +6,7 @@ class ApiService {
   // ✅ URL automatique selon la plateforme
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:8000/api'; // Chrome
+      return 'http://127.0.0.1:8000/api'; // Chrome
     } else {
       return 'http://10.0.2.2:8000/api';  // Émulateur Android
     }
@@ -16,9 +16,9 @@ class ApiService {
 
   ApiService() {
     _dio.options.baseUrl        = baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 30); // ✅ 30s
-    _dio.options.receiveTimeout = const Duration(seconds: 30); // ✅ 30s
-    _dio.options.sendTimeout    = const Duration(seconds: 30); // ✅ ajoute ça
+    _dio.options.connectTimeout = const Duration(seconds: 60); // ✅ 30s
+    _dio.options.receiveTimeout = const Duration(seconds: 60); // ✅ 30s
+    _dio.options.sendTimeout    = const Duration(seconds: 60); // ✅ ajoute ça
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final prefs = await SharedPreferences.getInstance();
