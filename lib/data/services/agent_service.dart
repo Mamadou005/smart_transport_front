@@ -1,51 +1,59 @@
+// Fichier : lib/data/services/agent_service.dart
+// Agent Terminal UNIQUEMENT : scanner, embarquement, réservations, stats
+
+import 'package:dio/dio.dart';
 import 'api_service.dart';
 
 class AgentService {
   final ApiService _api = ApiService();
 
-  Future<Map<String, dynamic>> scanner(String code) async {
-    print('SCANNING CODE: $code');
+  // ── Scanner un QR Code (réservation uniquement)
+  Future<Map<String, dynamic>> scanner(String codeQr) async {
     try {
-      final response = await _api.post('/agent/scanner', {'code': code});
-      print('SCAN RESULT: ${response.data}');
-      return Map<String, dynamic>.from(response.data);
-    } catch (e) {
-      print('SCAN ERROR: $e');
-      return {
-        'type':    'inconnu',
-        'valide':  false,
-        'code':    code,
-        'message': 'Code non reconnu',
-      };
+      final res = await _api.post('/agent/scanner', {'code_qr': codeQr});
+      final data = res.data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return {'valide': false, 'message': 'Réponse invalide'};
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? e.response?.data['message'] ?? 'Code invalide'
+          : 'Code invalide';
+      return {'valide': false, 'message': msg};
     }
   }
 
-  Future<Map<String, dynamic>> getStats() async {
-    final response = await _api.get('/agent/stats');
-    return Map<String, dynamic>.from(response.data);
-  }
-
-  Future<List<dynamic>> getReservationsDuJour({String? date}) async {
-    final dateParam = date ?? DateTime.now().toIso8601String().substring(0, 10);
-    final response = await _api.get(
-        '/agent/reservations-du-jour?date=$dateParam');
-    return response.data as List;
-  }
-
-  Future<Map<String, dynamic>> enregistrerBagage({
-    required int reservationId,
-    required double poids,
-    String? description,
+  // ── Réservations du jour (filtrées par date)
+  Future<List<Map<String, dynamic>>> getReservationsDuJour({
+    String? date,
   }) async {
-    final response = await _api.post('/agent/bagages', {
-      'reservation_id': reservationId,
-      'poids':          poids,
-      'description':    description ?? 'Bagage',
-    });
-    return Map<String, dynamic>.from(response.data);
+    try {
+      final param = date != null ? '?date=$date' : '';
+      final res = await _api.get('/agent/reservations-du-jour$param');
+      final data = res.data;
+      if (data is List) {
+        return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw Exception(
+          e.response?.data?['message'] ?? 'Erreur chargement réservations');
+    }
   }
 
-  Future<void> updateStatutBagage(int id, String statut) async {
-    await _api.put('/agent/bagages/$id/statut', {'statut': statut});
+  // ── Stats du jour (réservations + embarqués)
+  Future<Map<String, dynamic>> getStats() async {
+    try {
+      final res = await _api.get('/agent/stats');
+      final data = res.data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return {};
+    } on DioException catch (_) {
+      return {
+        'reservations_aujourd_hui': 0,
+        'embarques_aujourd_hui': 0,
+        'en_attente': 0,
+        'confirmees': 0,
+      };
+    }
   }
 }

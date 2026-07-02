@@ -7,6 +7,11 @@ class AppColors {
   static const Color accent         = Color(0xFF00D4AA);  // Turquoise vif
   static const Color accentOrange   = Color(0xFFFF6B35);  // Orange énergie
 
+  // ✅ Bagagiste (vert, distinct du teal Agent Terminal)
+  static const Color bagagisteDark   = Color(0xFF1B5E20);
+  static const Color bagagisteLight  = Color(0xFF43A047);
+  static const Color bagagisteAccent = Color(0xFF2E7D32);
+
   // Neutres
   static const Color background     = Color(0xFFF4F6FB);
   static const Color surface        = Color(0xFFFFFFFF);
@@ -37,6 +42,20 @@ class AppColors {
 
   static const LinearGradient cardGradient = LinearGradient(
     colors: [Color(0xFF1B4F8A), Color(0xFF0A2342)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // ✅ Gradient Agent Terminal (bleu → turquoise, comme dans la maquette)
+  static const LinearGradient agentGradient = LinearGradient(
+    colors: [Color(0xFF1B4F8A), Color(0xFF00D4AA)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // ✅ Gradient Bagagiste (vert, comme dans la maquette)
+  static const LinearGradient bagagisteGradient = LinearGradient(
+    colors: [bagagisteDark, bagagisteLight],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

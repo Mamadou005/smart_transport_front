@@ -30,17 +30,29 @@ class AuthService {
   }) async {
     try {
       final response = await _api.post('/register', {
-        'nom':      nom,
-        'prenom':   prenom,
-        'email':    email,
+        'nom':       nom,
+        'prenom':    prenom,
+        'email':     email,
         'telephone': telephone,
-        'password': password,
-        'role':     'passager',
+        'password':  password,
+        'role':      'passager',
       });
-      return Map<String, dynamic>.from(response.data);
+
+      // ✅ Fix — gère tous les types de réponse
+      final data = response.data;
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+      if (data is String) {
+        // La réponse est une string JSON — on la parse
+        throw Exception('Erreur serveur : $data');
+      }
+      return Map<String, dynamic>.from(data as Map);
+
     } on DioException catch (e) {
-      final msg = e.response?.data?['message']
-          ?? 'Erreur d\'inscription';
+      final msg = e.response?.data is Map
+          ? e.response?.data['message'] ?? 'Erreur d\'inscription'
+          : e.response?.data?.toString() ?? 'Erreur d\'inscription';
       throw Exception(msg);
     }
   }

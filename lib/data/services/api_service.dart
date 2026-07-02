@@ -16,9 +16,9 @@ class ApiService {
 
   ApiService() {
     _dio.options.baseUrl        = baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 60); // ✅ 30s
-    _dio.options.receiveTimeout = const Duration(seconds: 60); // ✅ 30s
-    _dio.options.sendTimeout    = const Duration(seconds: 60); // ✅ ajoute ça
+    _dio.options.connectTimeout = const Duration(seconds: 60); // ✅ 60s
+    _dio.options.receiveTimeout = const Duration(seconds: 60); // ✅ 60s
+    _dio.options.sendTimeout    = const Duration(seconds: 60); // ✅ 60s
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final prefs = await SharedPreferences.getInstance();

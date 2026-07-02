@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'app.dart';
-import 'data/providers/auth_provider.dart';
-import 'data/providers/bagage_provider.dart';
-import 'data/providers/notification_provider.dart';
-import 'data/providers/reservation_provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => BagageProvider()),
-        ChangeNotifierProvider(create: (_) => ReservationProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
-      ],
-      child: const SmartTransportApp(),
-    ),
-  );
+
+  // Orientation portrait uniquement sur mobile
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // Style de la barre système
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor:            Colors.transparent,
+    statusBarIconBrightness:   Brightness.light,
+    statusBarBrightness:       Brightness.dark,
+  ));
+
+  runApp(const SmartTransportApp());
 }
