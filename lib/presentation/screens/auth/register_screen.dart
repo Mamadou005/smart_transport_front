@@ -50,6 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
+
     final auth = context.read<AuthProvider>();
     final ok   = await auth.register(
       nom:       _nomController.text.trim(),
@@ -58,9 +59,13 @@ class _RegisterScreenState extends State<RegisterScreen>
       telephone: _telController.text.trim(),
       password:  _passwordController.text.trim(),
     );
+
     if (!mounted) return;
+
     if (ok) {
-      context.go('/home');
+      // ✅ Correction : On supprime context.go('/home').
+      // Grâce au refreshListenable de GoRouter lié à ton AuthProvider,
+      // la transition vers '/onboarding' se déclenche automatiquement.
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(auth.errorMessage ?? 'Erreur lors de l\'inscription'),
@@ -270,7 +275,6 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 }
 
-// Indicateur de force du mot de passe
 class _PasswordStrengthBar extends StatelessWidget {
   final String password;
   const _PasswordStrengthBar({required this.password});

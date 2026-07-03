@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smart_transport/data/providers/auth_provider.dart';
 import '../../core/constants/app_colors.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -72,10 +74,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
   ];
 
+  // ✅ Méthode adaptée pour travailler de concert avec AuthProvider et GoRouter
   Future<void> _terminer() async {
+    // 1. Persistance en local (utile si tu veux t'en servir ailleurs ou au premier lancement global)
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_vu', true);
-    if (mounted) context.go('/login');
+
+    if (mounted) {
+      context.read<AuthProvider>().clearOnboarding();
+      context.go('/home');
+    }
   }
 
   @override
@@ -86,7 +94,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ SafeArea + LayoutBuilder pour éviter tout overflow
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -128,7 +135,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
-            // ✅ Bas — dots + bouton avec padding dynamique
+            // Bas — dots + bouton avec padding dynamique
             Positioned(
               bottom: 0, left: 0, right: 0,
               child: SafeArea(
@@ -138,7 +145,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     24,
                     0,
                     24,
-                    // ✅ Padding bas adaptatif selon la hauteur dispo
                     constraints.maxHeight < 700 ? 12 : 32,
                   ),
                   child: Column(
@@ -269,7 +275,6 @@ class _BtnSuivant extends StatelessWidget {
   );
 }
 
-// ── Modèle page
 class _OnboardingPage {
   final LinearGradient gradient;
   final IconData icon;
@@ -288,7 +293,6 @@ class _OnboardingPage {
   });
 }
 
-// ── Widget page avec animations
 class _OnboardingPageWidget extends StatefulWidget {
   final _OnboardingPage page;
   const _OnboardingPageWidget({required this.page});
@@ -340,7 +344,6 @@ class _OnboardingPageWidgetState
   @override
   Widget build(BuildContext context) {
     final page = widget.page;
-    // ✅ LayoutBuilder pour adapter la taille de l'icône
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSmall  = constraints.maxHeight < 700;
@@ -359,7 +362,6 @@ class _OnboardingPageWidgetState
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // ✅ Espace top adaptatif
                   SizedBox(height: isSmall ? 40 : 80),
 
                   // Illustration animée
@@ -424,7 +426,6 @@ class _OnboardingPageWidgetState
                     ]),
                   ),
 
-                  // ✅ Espace bas pour les boutons (évite overflow)
                   SizedBox(height: isSmall ? 100 : 160),
                 ],
               ),

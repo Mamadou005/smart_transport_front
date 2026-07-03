@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
@@ -6,45 +5,50 @@ import '../services/auth_service.dart';
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
-  bool _isLoading = false;
+  bool    _isLoading      = false;
   String? _errorMessage;
   String? _userRole;
   Map<String, dynamic>? _currentUser;
+  bool    _showOnboarding = false;
 
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
-  String? get userRole => _userRole;
+  bool    get isLoading      => _isLoading;
+  String? get errorMessage   => _errorMessage;
+  String? get userRole       => _userRole;
   Map<String, dynamic>? get currentUser => _currentUser;
+  bool    get isConnecte     => _currentUser != null && _userRole != null;
 
-  // ── Rôles reconnus par l'application
-  static const List<String> _rolesValides = [
-    'passager',
-    'agent',
-    'bagagiste', // ✅ nouveau rôle
-    'admin',
+  // ✅ Vrai seulement si passager venant de s'inscrire
+  bool get showOnboarding => _showOnboarding;
+
+  static const List<String> rolesValides = [
+    'passager', 'agent', 'bagagiste', 'admin',
   ];
 
-  // ── Login
+  // ════════════════════════════════════════
+  // LOGIN
+  // ════════════════════════════════════════
   Future<bool> login(String email, String password) async {
-    _isLoading = true;
-    _errorMessage = null;
+    _isLoading      = true;
+    _errorMessage   = null;
+    _showOnboarding = false; // reset à chaque tentative
     notifyListeners();
 
     try {
       final result = await _authService.login(email, password);
       final prefs  = await SharedPreferences.getInstance();
 
-      // Stocke le token
       await prefs.setString('token', result['token']);
 
-      // Stocke le rôle pour la restauration de session
       final user = Map<String, dynamic>.from(result['user'] as Map);
       final role = user['role'] as String? ?? 'passager';
       await prefs.setString('user_role', role);
 
-      _currentUser = user;
-      _userRole    = role;
-      _isLoading   = false;
+      _currentUser    = user;
+      _userRole       = role;
+      // ✅ Login normal → jamais d'onboarding
+      _showOnboarding = false;
+
+      _isLoading = false;
       notifyListeners();
       return true;
 
@@ -56,7 +60,9 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ── Register (passager uniquement depuis l'app publique)
+  // ════════════════════════════════════════
+  // REGISTER
+  // ════════════════════════════════════════
   Future<bool> register({
     required String nom,
     required String prenom,
@@ -64,8 +70,9 @@ class AuthProvider extends ChangeNotifier {
     required String telephone,
     required String password,
   }) async {
-    _isLoading = true;
-    _errorMessage = null;
+    _isLoading      = true;
+    _errorMessage   = null;
+    _showOnboarding = false;
     notifyListeners();
 
     try {
@@ -84,7 +91,11 @@ class AuthProvider extends ChangeNotifier {
 
       _currentUser = user;
       _userRole    = 'passager';
-      _isLoading   = false;
+
+      // ✅ Nouveau passager inscrit → onboarding
+      _showOnboarding = true;
+
+      _isLoading = false;
       notifyListeners();
       return true;
 
@@ -96,7 +107,9 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ── Restaurer la session depuis SharedPreferences (au démarrage)
+  // ════════════════════════════════════════
+  // RESTAURER SESSION (démarrage de l'app)
+  // ════════════════════════════════════════
   Future<bool> restaurerSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -104,27 +117,30 @@ class AuthProvider extends ChangeNotifier {
       final role  = prefs.getString('user_role');
 
       if (token == null || token.isEmpty) return false;
-      if (role == null || !_rolesValides.contains(role)) return false;
+      if (role == null || !rolesValides.contains(role)) return false;
 
-      // Récupère le profil depuis l'API pour vérifier que le token est valide
       final user = await _authService.me();
-      _currentUser = user;
-      _userRole    = user['role'] as String? ?? role;
+      _currentUser    = user;
+      _userRole       = user['role'] as String? ?? role;
 
-      // Met à jour le rôle stocké si changé par l'admin
+      // ── Maintien du flag si l'utilisateur est déjà identifié comme nouveau passager
+      if (_userRole != 'passager' || !_showOnboarding) {
+        _showOnboarding = false;
+      }
+
       await prefs.setString('user_role', _userRole!);
-
       notifyListeners();
       return true;
 
     } catch (_) {
-      // Token expiré ou invalide → on déconnecte proprement
       await logout();
       return false;
     }
   }
 
-  // ── Logout
+  // ════════════════════════════════════════
+  // LOGOUT
+  // ════════════════════════════════════════
   Future<void> logout() async {
     try { await _authService.logout(); } catch (_) {}
 
@@ -132,27 +148,28 @@ class AuthProvider extends ChangeNotifier {
     await prefs.remove('token');
     await prefs.remove('user_role');
 
-    _currentUser = null;
-    _userRole    = null;
+    _currentUser    = null;
+    _userRole       = null;
+    _showOnboarding = false;
     notifyListeners();
   }
 
-  // ── Mise à jour du profil en local (après modification)
+  // ✅ Appelé par OnboardingScreen quand l'utilisateur clique "Commencer"
+  void clearOnboarding() {
+    _showOnboarding = false;
+    notifyListeners();
+  }
+
   void updateCurrentUser(Map<String, dynamic> user) {
     _currentUser = Map<String, dynamic>.from(user);
-    // Met à jour le rôle si l'admin l'a changé
-    if (user.containsKey('role')) {
-      _userRole = user['role'] as String?;
-    }
+    if (user.containsKey('role')) _userRole = user['role'] as String?;
     notifyListeners();
   }
 
-  // ── Helpers de rôle (utilisés dans l'UI)
-  bool get isAdmin      => _userRole == 'admin';
-  bool get isAgent      => _userRole == 'agent';
-  bool get isBagagiste  => _userRole == 'bagagiste'; // ✅ nouveau
-  bool get isPassager   => _userRole == 'passager';
-  bool get isConnecte   => _currentUser != null && _userRole != null;
+  bool get isAdmin     => _userRole == 'admin';
+  bool get isAgent     => _userRole == 'agent';
+  bool get isBagagiste => _userRole == 'bagagiste';
+  bool get isPassager  => _userRole == 'passager';
 
   String get nomComplet =>
       '${_currentUser?['prenom'] ?? ''} ${_currentUser?['nom'] ?? ''}'.trim();
